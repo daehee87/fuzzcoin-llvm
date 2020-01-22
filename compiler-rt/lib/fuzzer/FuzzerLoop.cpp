@@ -469,6 +469,13 @@ bool Fuzzer::RunOne(const uint8_t *Data, size_t Size, bool MayDeleteFile,
 
   ExecuteCallback(Data, Size);
 
+  //{{ added for fuzzcoin
+  // Dump initial InlineCounterMaps for coverage verification
+  if(TotalNumberOfRuns < 3){    // for coverage check
+    TPC.DumpCoveragesToFile(Options);
+  }
+  //}}
+
   UniqFeatureSetTmp.clear();
   size_t FoundUniqFeaturesOfII = 0;
   size_t NumUpdatesBefore = Corpus.NumFeatureUpdates();
@@ -555,6 +562,34 @@ void Fuzzer::ExecuteCallback(const uint8_t *Data, size_t Size) {
     RunningUserCallback = true;
     int Res = CB(DataCopy, Size);
     RunningUserCallback = false;
+
+    //{{ added for fuzzcoin
+    std::string exec_hash = TPC.GetExecutionHash();
+    if( TotalNumberOfRuns < Options.PofwSlowdownThreashHold ){
+      FILE* tmpfp = fopen(Options.PofwPath.c_str(), "a+");
+      if(tmpfp!=NULL){
+        fprintf(tmpfp, "%s\n", exec_hash.c_str());
+        fclose(tmpfp);
+      }
+      else{
+        Printf("[ERROR] fopen for pofw failed\n");
+      }
+    }
+    else{
+      // slowdown PoFW generation
+      if( (TotalNumberOfRuns % Options.PofwSlowdownRate) == 0 ){
+        FILE* tmpfp = fopen(Options.PofwPath.c_str(), "a+");
+        if(tmpfp!=NULL){
+          fprintf(tmpfp, "%s\n", exec_hash.c_str());
+          fclose(tmpfp);
+        }
+        else{
+          Printf("[ERROR] fopen for pofw failed\n");
+        }
+      }
+    }
+    //}}
+
     UnitStopTime = system_clock::now();
     (void)Res;
     assert(Res == 0);
@@ -602,6 +637,20 @@ void Fuzzer::PrintStatusForNewUnit(const Unit &U, const char *Text) {
   }
 }
 
+//{{ added for fuzzcoin
+void Fuzzer::CheckGlobalCoverageExpansion(const Unit &U){
+  // dump the current coverage, test case to filesystem
+  std::string Path = DirPlusFile(".", Options.CurrentInputPath);
+  WriteToFile(U, Path);
+  
+  // Dump all InlineCounterMaps to test coverage folder
+  TPC.DumpCoveragesToFile(Options);
+  
+  // invoke outer fuzzcoin helper script for actual check
+  int r = system(Options.CheckerScriptPath.c_str());
+}
+//}}
+
 void Fuzzer::ReportNewCoverage(InputInfo *II, const Unit &U) {
   II->NumSuccessfullMutations++;
   MD.RecordSuccessfulMutationSequence();
@@ -610,6 +659,10 @@ void Fuzzer::ReportNewCoverage(InputInfo *II, const Unit &U) {
   NumberOfNewUnitsAdded++;
   CheckExitOnSrcPosOrItem(); // Check only after the unit is saved to corpus.
   LastCorpusUpdateRun = TotalNumberOfRuns;
+
+  //{{ added for fuzzcoin
+  CheckGlobalCoverageExpansion(U);
+  //}}
 }
 
 // Tries detecting a memory leak on the particular input that we have just
@@ -681,18 +734,28 @@ void Fuzzer::MutateAndTestOne() {
       break;
     MaybeExitGracefully();
     size_t NewSize = 0;
-    if (II.HasFocusFunction && !II.DataFlowTraceForFocusFunction.empty() &&
-        Size <= CurrentMaxMutationLen)
-      NewSize = MD.MutateWithMask(CurrentUnitData, Size, Size,
+
+    //{{ added for fuzzcoin
+    // avoid mutation for initial runs (for coverage check)
+    if (TotalNumberOfRuns > 3) {
+    //}}
+
+      if (II.HasFocusFunction && !II.DataFlowTraceForFocusFunction.empty() &&
+          Size <= CurrentMaxMutationLen)
+        NewSize = MD.MutateWithMask(CurrentUnitData, Size, Size,
                                   II.DataFlowTraceForFocusFunction);
 
-    // If MutateWithMask either failed or wasn't called, call default Mutate.
-    if (!NewSize)
-      NewSize = MD.Mutate(CurrentUnitData, Size, CurrentMaxMutationLen);
-    assert(NewSize > 0 && "Mutator returned empty unit");
-    assert(NewSize <= CurrentMaxMutationLen && "Mutator return oversized unit");
-    Size = NewSize;
-    II.NumExecutedMutations++;
+      // If MutateWithMask either failed or wasn't called, call default Mutate.
+      if (!NewSize)
+        NewSize = MD.Mutate(CurrentUnitData, Size, CurrentMaxMutationLen);
+      assert(NewSize > 0 && "Mutator returned empty unit");
+      assert(NewSize <= CurrentMaxMutationLen && "Mutator return oversized unit");
+      Size = NewSize;
+      II.NumExecutedMutations++;
+  
+    //{{ added for fuzzcoin
+    }
+    //}}
 
     bool FoundUniqFeatures = false;
     bool NewCov = RunOne(CurrentUnitData, Size, /*MayDeleteFile=*/true, &II,
@@ -700,7 +763,17 @@ void Fuzzer::MutateAndTestOne() {
     TryDetectingAMemoryLeak(CurrentUnitData, Size,
                             /*DuringInitialCorpusExecution*/ false);
     if (NewCov) {
-      ReportNewCoverage(&II, {CurrentUnitData, CurrentUnitData + Size});
+
+      //{{ added for fuzzcoin
+      if (TotalNumberOfRuns > 3) {
+      //}}
+      
+        ReportNewCoverage(&II, {CurrentUnitData, CurrentUnitData + Size});
+      
+      //{{ added for fuzzcoin
+      }
+      //}}
+            
       break;  // We will mutate this input more in the next rounds.
     }
     if (Options.ReduceDepth && !FoundUniqFeatures)
@@ -770,6 +843,9 @@ void Fuzzer::ReadAndExecuteSeedCorpora(Vector<SizedFile> &CorporaFiles) {
   }
 
   PrintStats("INITED");
+
+  //{{ deleted for fuzzcoin
+  /*
   if (!Options.FocusFunction.empty())
     Printf("INFO: %zd/%zd inputs touch the focus function\n",
            Corpus.NumInputsThatTouchFocusFunction(), Corpus.size());
@@ -782,6 +858,9 @@ void Fuzzer::ReadAndExecuteSeedCorpora(Vector<SizedFile> &CorporaFiles) {
            "Is the code instrumented for coverage? Exiting.\n");
     exit(1);
   }
+  */
+  //}}
+
 }
 
 void Fuzzer::Loop(Vector<SizedFile> &CorporaFiles) {

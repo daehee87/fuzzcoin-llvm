@@ -54,6 +54,16 @@ struct FuzzingOptions {
   std::string CollectDataFlow;
   std::string FeaturesDir;
   std::string StopFile;
+
+  //{{ added for fuzzcoin
+  std::string CurrentInputPath = ".cur_input";  // same as AFL
+  std::string CurrentCoverageDir = "features";  // tmp dir to dump out the feature as we want
+  std::string CheckerScriptPath = "./checker.py"; // coverage expansion checker
+  std::string PofwPath = "pofw";
+  unsigned int PofwSlowdownThreashHold = 100; 	// calculate PoFW for this amount of initial iteration
+  unsigned int PofwSlowdownRate = 1000;  	// calculates PoFW once this iteration
+  //}}
+
   bool SaveArtifacts = true;
   bool PrintNEW = true; // Print a status line when new units are found;
   bool PrintNewCovPcs = false;

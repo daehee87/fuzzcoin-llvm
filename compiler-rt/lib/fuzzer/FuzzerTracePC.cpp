@@ -34,6 +34,47 @@ size_t TracePC::GetTotalPCCoverage() {
   return ObservedPCs.size();
 }
 
+//{{ added for fuzzcoin
+void TracePC::DumpCoveragesToFile(FuzzingOptions Options){
+    char idx[32];
+    for (unsigned int i = 0; i < NumModules; i++) {
+        memset(idx, 0, 32);
+        snprintf(idx, 32, "%u", i);
+        std::string Path = DirPlusFile(Options.CurrentCoverageDir, idx);
+        WriteToFile( Unit(Modules[i].Start(),
+                            Modules[i].Stop()), Path);
+    }
+}
+
+void xor_bytes(uint8_t* p1, uint8_t* p2, size_t len){
+    unsigned int i=0;
+    while(len--){
+        *(p1+i) = *(p1+i) ^ *(p2+i);
+        i++;
+    }
+}
+
+std::string TracePC::GetExecutionHash(){
+    uint8_t PrevExecHash[kSHA1NumBytes];
+    uint8_t ExecHash[kSHA1NumBytes];
+
+    // init
+    memset(PrevExecHash, 0, kSHA1NumBytes);
+    memset(ExecHash, 0, kSHA1NumBytes);
+
+    // InlineCounterMap Hash
+    for (size_t i = 0; i < NumModules; i++) {
+        uint8_t *Beg = Modules[i].Start();
+        size_t Size = Modules[i].Stop() - Beg;
+        ComputeSHA1(Beg, Size, PrevExecHash);
+
+        // chain all per-module hashes
+        xor_bytes(ExecHash, PrevExecHash, kSHA1NumBytes);
+    }
+
+    return Sha1ToString(ExecHash);
+}
+//}}
 
 void TracePC::HandleInline8bitCountersInit(uint8_t *Start, uint8_t *Stop) {
   if (Start == Stop) return;

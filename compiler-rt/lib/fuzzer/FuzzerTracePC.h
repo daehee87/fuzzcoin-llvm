@@ -15,6 +15,10 @@
 #include "FuzzerDictionary.h"
 #include "FuzzerValueBitMap.h"
 
+//{{ added for fuzzcoin
+#include "FuzzerOptions.h"
+//}}
+
 #include <set>
 #include <unordered_map>
 
@@ -86,6 +90,11 @@ class TracePC {
     ClearExtraCounters();
     ClearInlineCounters();
   }
+
+  //{{ added for fuzzcoin
+  void DumpCoveragesToFile(FuzzingOptions Options);
+  std::string GetExecutionHash();
+  //}}
 
   void ClearInlineCounters();
 
