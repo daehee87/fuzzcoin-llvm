@@ -60,7 +60,7 @@ struct FuzzingOptions {
   std::string CurrentCoverageDir = "features";  // tmp dir to dump out the feature as we want
   std::string CheckerScriptPath = "./checker.py"; // coverage expansion checker
   std::string PofwPath = "pofw";
-  unsigned int PofwSlowdownThreashHold = 100; 	// calculate PoFW for this amount of initial iteration
+  unsigned int PofwSlowdownThreashHold = 3; 	// calculate PoFW for this amount of initial iteration
   unsigned int PofwSlowdownRate = 1000;  	// calculates PoFW once this iteration
   //}}
 
