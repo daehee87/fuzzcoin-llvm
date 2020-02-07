@@ -566,17 +566,6 @@ void Fuzzer::ExecuteCallback(const uint8_t *Data, size_t Size) {
     //{{ added for fuzzcoin
     std::string exec_hash = TPC.GetExecutionHash();
     if( TotalNumberOfRuns < Options.PofwSlowdownThreashHold ){
-      FILE* tmpfp = fopen(Options.PofwPath.c_str(), "a+");
-      if(tmpfp!=NULL){
-        fprintf(tmpfp, "%s\n", exec_hash.c_str());
-        fclose(tmpfp);
-      }
-      else{
-        Printf("[ERROR] fopen for pofw failed\n");
-      }
-    }
-    else{
-      // slowdown PoFW generation
       if( (TotalNumberOfRuns % Options.PofwSlowdownRate) == 0 ){
         FILE* tmpfp = fopen(Options.PofwPath.c_str(), "a+");
         if(tmpfp!=NULL){
