@@ -93,7 +93,7 @@ class TracePC {
 
   //{{ added for fuzzcoin
   void DumpCoveragesToFile(FuzzingOptions Options);
-  std::string GetExecutionHash();
+  std::string GetExecutionHash(unsigned);
   //}}
 
   void ClearInlineCounters();

@@ -60,8 +60,9 @@ struct FuzzingOptions {
   std::string CurrentCoverageDir = "features";  // tmp dir to dump out the feature as we want
   std::string CheckerScriptPath = "./checker.py"; // coverage expansion checker
   std::string PofwPath = "pofw";
-  unsigned int PofwSlowdownThreashHold = 1000; 	// calculate PoFW for this amount of initial iteration
+  unsigned int PofwSlowdownThreashHold = 12000; // calculate PoFW for this amount of initial iteration
   unsigned int PofwSlowdownRate = 10;	  	// calculates PoFW once this iteration
+  unsigned pofw_seed = 0;			// initialize this from FuzzDriver.cpp, then use it for PoFW
   //}}
 
   bool SaveArtifacts = true;

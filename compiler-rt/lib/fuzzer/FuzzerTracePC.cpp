@@ -54,10 +54,17 @@ void xor_bytes(uint8_t* p1, uint8_t* p2, size_t len){
     }
 }
 
-std::string TracePC::GetExecutionHash(){
+std::string TracePC::GetExecutionHash(unsigned pofw_seed){
     uint8_t PrevExecHash[kSHA1NumBytes];
     uint8_t ExecHash[kSHA1NumBytes];
+    uint8_t IV[4];
 
+    // set IV with seed
+    IV[0] = (uint8_t)(pofw_seed & 0xff);
+    IV[1] = (uint8_t)((pofw_seed>>8) & 0xff);
+    IV[2] = (uint8_t)((pofw_seed>>16) & 0xff);
+    IV[3] = (uint8_t)((pofw_seed>>24) & 0xff);
+    	
     // init
     memset(PrevExecHash, 0, kSHA1NumBytes);
     memset(ExecHash, 0, kSHA1NumBytes);
@@ -71,6 +78,10 @@ std::string TracePC::GetExecutionHash(){
         // chain all per-module hashes
         xor_bytes(ExecHash, PrevExecHash, kSHA1NumBytes);
     }
+
+    // merge with IV
+    ComputeSHA1(IV, 4, PrevExecHash);
+    xor_bytes(ExecHash, PrevExecHash, kSHA1NumBytes);
 
     return Sha1ToString(ExecHash);
 }

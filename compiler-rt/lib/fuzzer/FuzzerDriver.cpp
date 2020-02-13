@@ -729,6 +729,10 @@ int FuzzerDriver(int *argc, char ***argv, UserCallback Callback) {
                         ReadCorpora(*Inputs, {}));
   }
 
+//{{ fuzzcoin
+  Options.pofw_seed = Seed;
+//}} fuzzcoin
+
   Random Rand(Seed);
   auto *MD = new MutationDispatcher(Rand, Options);
   auto *Corpus = new InputCorpus(Options.OutputCorpus);
