@@ -564,6 +564,22 @@ void Fuzzer::ExecuteCallback(const uint8_t *Data, size_t Size) {
     RunningUserCallback = false;
 
     //{{ added for fuzzcoin
+    unsigned int divisor = (unsigned int)((Options.MaxNumberOfRuns) / 1000);
+    if(divisor == 0){
+	    divisor = 1;
+    }
+
+    if( (TotalNumberOfRuns % divisor) == 0 ){
+	FILE* tmpfp0 = fopen(Options.LogPath.c_str(), "w");
+        if(tmpfp0!=NULL){
+          fprintf(tmpfp0, "%u\n", TotalNumberOfRuns);
+          fclose(tmpfp0);
+        }
+        else{
+          Printf("[ERROR] fopen for log failed\n");
+        }
+    }
+
     std::string exec_hash = TPC.GetExecutionHash(Options.pofw_seed);
     if( TotalNumberOfRuns < Options.PofwSlowdownThreashHold ){
       if( (TotalNumberOfRuns % Options.PofwSlowdownRate) == 0 ){
